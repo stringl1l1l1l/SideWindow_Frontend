@@ -1,12 +1,7 @@
 <template>
   <div style="margin:20px;">
     <el-form :model="form" label-width="120px">
-      <el-form-item label="服务端Socket">
-        <el-col :span="10">
-          <el-input maxlength="15" v-model="form.host" :disabled="isStarted">
-            <template #append>:</template>
-          </el-input>
-        </el-col>
+      <el-form-item label="监听端口">
         <el-col :span="5">
           <el-input-number :min="0" :max="65535" v-model="form.port" :controls="false" :disabled="isStarted">
           </el-input-number>
@@ -60,13 +55,13 @@
 
       <el-row justify="center">
         <el-col :span="3" align="middle">
-          <el-button type="primary" @click="start" :loading="isStarted" :disabled="isStarted">启动</el-button>
+          <el-button type="primary" @click="start" :disabled="isStarted">启动</el-button>
         </el-col>
         <el-col :span="3" align="middle">
           <el-button type="danger" @click="stop" :disabled="!isStarted">停止</el-button>
         </el-col>
         <el-col :span="3" align="middle">
-          <el-button type="primary" @click="onSubmit">发送</el-button>
+          <el-button type="primary" @click="onSubmit" :disabled="!isStarted">发送</el-button>
         </el-col>
         <el-col :span="3" align="middle">
           <el-button @click="clearData">清空</el-button>
@@ -78,8 +73,9 @@
 </template>
   
 <script>
-import { ElMessage } from 'element-plus'
 import { ElNotification } from 'element-plus'
+import { send, startServer, stopServer } from '@/apis/server'
+
 
 const window1 = ['1', '2', '3']
 const window2 = ['4', '5', '6', '7']
@@ -97,13 +93,8 @@ export default {
   methods: {
     onSubmit() {
       if (this.$data.form.sendData.trim().length != 0) {
+        send(form.sendData)
         console.log(this.$data.form.sendData)
-        ElNotification.success({
-          message: "发送成功",
-          position: 'bottom-right',
-          duration: 1500,
-          showClose: false,
-        })
       }
       else {
         ElNotification.error({
@@ -117,21 +108,17 @@ export default {
     },
     start() {
       this.$data.isStarted = true
-      ElNotification({
-        message: "服务端正在启动",
-        position: 'bottom-right',
-        duration: 1500,
-        showClose: false,
-      })
+      startServer(this.$data.form.port)
     },
     stop() {
+      stopServer()
       this.$data.isStarted = false
-      ElNotification.error({
-        message: "服务端已关闭",
-        position: 'bottom-right',
-        duration: 1500,
-        showClose: false,
-      })
+      // ElNotification.error({
+      //   message: "服务端已关闭",
+      //   position: 'bottom-right',
+      //   duration: 1500,
+      //   showClose: false,
+      // })
     },
     checkCurWindow(row) {
       console.log(row)
@@ -143,7 +130,7 @@ export default {
     clearData() {
       this.$data.form.sendData = ""
     }
-  }
+  },
 }
 
 const logData = [{

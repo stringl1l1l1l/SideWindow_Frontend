@@ -5,10 +5,14 @@ import Server from './server/App.vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 
-const server = createApp(Server)
-server.use(ElementPlus)
-server.mount('#server')
+if (document.querySelector('#server')) {
+    const server = createApp(Server)
+    server.use(ElementPlus)
+    server.mount('#server')
+}
 
-const client = createApp(Client)
-client.use(ElementPlus)
-client.mount('#client')
+if (document.querySelector('#client')) {
+    const client = createApp(Client)
+    client.use(ElementPlus)
+    client.mount('#client')
+}

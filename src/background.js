@@ -25,7 +25,7 @@ async function createWindow() {
 
   const winClient = new BrowserWindow({
     width: 700,
-    height: 600,
+    height: 700,
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
@@ -40,8 +40,8 @@ async function createWindow() {
 
     // await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
     if (!process.env.IS_TEST) {
-      // winServer.webContents.openDevTools() 
-      // winClient.webContents.openDevTools() 
+      winServer.webContents.openDevTools()
+      winClient.webContents.openDevTools()
     }
   } else {
     createProtocol('app')
