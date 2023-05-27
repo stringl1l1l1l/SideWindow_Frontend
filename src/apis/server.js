@@ -16,3 +16,7 @@ export async function shutdown() {
     http.post('/server/stop');
     return http.post('/client/stop')
 }
+
+export async function changeSendWinSize(newSize) {
+    return http.post('/server/changeSendWinSize', newSize)
+}

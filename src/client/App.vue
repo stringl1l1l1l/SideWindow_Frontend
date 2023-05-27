@@ -69,7 +69,7 @@
 </template>
   
 <script>
-import { check, connect, stopClient } from '@/apis/client'
+import { connect, stopClient } from '@/apis/client'
 
 const window = ['1', '2', '3']
 

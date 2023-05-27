@@ -1,4 +1,4 @@
-import { ADD_SERVER_SEND_PACK, UPDATE_SERVER_SEND_SEGINFO_LIST, UPDATE_SEND_WIN_ARRAY } from '@/utils/store'
+import { ADD_SERVER_SEND_PACK, UPDATE_SERVER_SEND_SEGINFO_LIST, UPDATE_SEND_WIN } from '@/utils/store'
 
 export function initServerSocket() {
     const serverSocket = new WebSocket('ws://localhost:8080/SideWindows_war_exploded/server_socket');
@@ -21,7 +21,7 @@ export function initServerSocket() {
         if (response.extra.sendWin) {
             console.log("更新窗口")
             console.log(response.extra.sendWin)
-            window.$vm.$store.commit(UPDATE_SEND_WIN_ARRAY, response.extra.sendWin)
+            window.$vm.$store.commit(UPDATE_SEND_WIN, response.extra.sendWin)
         }
     };
 

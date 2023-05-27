@@ -19,12 +19,16 @@
       </el-form-item>
 
       <el-form-item label="发送窗口">
-        <el-checkbox-group v-model="sendWin1">
-          <el-checkbox-button v-for="value in sendWin2" :key="value" :label="value" />
+        <el-checkbox-group v-model="sendWin">
+          <el-checkbox-button v-for="(value, index) in  sendCache " :key="value" :label="value" size="small">
+            <template #default>
+              <span :style="{ color: colorCompute[index], fontWeight: 'bold' }">{{ value }}</span>
+            </template>
+          </el-checkbox-button>
         </el-checkbox-group>
       </el-form-item>
 
-      <el-form-item label="发送日志">
+      <el-form-item label=" 发送日志">
         <el-table :data="SendSegList" border max-height="157" style="width: 100%">
           <el-table-column prop="segment.segNo" label="序号" width="100%" />
           <el-table-column prop="segment.ackNo" label="确认号" width="100%" />
@@ -102,7 +106,7 @@ const form = {
   window2Display: window2,
   sendCnt: 1,
   logSendData: [],
-  logReceiveData: []
+  logReceiveData: [],
 }
 
 export default {
@@ -115,6 +119,9 @@ export default {
       isStarted: false,
       isContinous: false,
       serverSocket: {},
+      lastBeg: 100,
+      cache: [],
+      color: []
     }
   },
   methods: {
@@ -152,7 +159,6 @@ export default {
       shutdown()
       this.isStarted = false
     },
-
     checkCurWindow(row) {
       console.log(row)
       this.form.window1Display = row.window1
@@ -172,23 +178,50 @@ export default {
       this.$nextTick()
       return res
     },
-    sendWin1() {
-      const res = this.$store.state.sendWin[0]
-      console.log("未确认窗口: ")
-      console.log(res)
+
+    sendWin() {
+      const { posBeg, posCur, posEnd, segmentList } = this.$store.state.sendWin
+      const array = []
+      // 已发送元素为绿色
+      for (let i = posBeg; i < posCur; i++) {
+        if (i - this.lastBeg > 0)
+          this.color[i - this.lastBeg] = "#34ff00"
+        array.push(segmentList[i].segment.segNo)
+      }
+      // 待发送窗口元素为其他颜色
+      for (let i = posCur; i < posEnd; i++) {
+        if (i - this.lastBeg > 0)
+          this.color[i - this.lastBeg] = "#ff0000"
+        array.push(segmentList[i].segment.segNo)
+      }
       this.$nextTick()
-      return res
+      console.log("未确认窗口")
+      console.log(array)
+      console.log(this.color)
+      return array
     },
-    sendWin2() {
-      const res = this.$store.state.sendWin[1]
-      console.log("发送窗口: ")
-      console.log(res)
-      this.$nextTick()
-      return res
+    // 缓存元素为默认色
+    sendCache() {
+      if (this.$store.state.sendWinCnt == 1 || this.$store.state.sendWinCnt % 3 == 0) {
+        const { posBeg, posCur, windowSize, segmentList } = this.$store.state.sendWin
+        this.lastBeg = posBeg //保存上一次的缓存初始序号
+        const array = []
+        for (let i = 0; i < 2 * windowSize; i++) {
+          array.push(segmentList[posBeg].segment.segNo + i)
+          if (i + posBeg >= posCur)
+            this.color[i] = "#000000"
+          else
+            this.color[i] = "#34ff00"
+        }
+        this.$nextTick()
+        this.cache = array
+        return array
+      } else
+        return this.cache
+    },
+    colorCompute() {
+      return this.color
     }
-  },
-  // hooks
-  updated() {
   },
 }
 
