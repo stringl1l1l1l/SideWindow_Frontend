@@ -15,7 +15,7 @@
       </el-form-item>
 
       <el-form-item label="接收窗口大小">
-        <el-col :span="7">
+        <el-col :span="10">
           <el-input-number :min="1" :max="10" v-model="form.receiveWinSize" />
         </el-col>
         <el-col :span="5">
@@ -57,10 +57,10 @@
 
       <el-row justify="center">
         <el-col :span="3" align="middle">
-          <el-button type="primary" @click="start" :disabled="isStarted">连接</el-button>
+          <el-button type="primary" @click="start">连接</el-button>
         </el-col>
         <el-col :span="3" align="middle">
-          <el-button type="danger" @click="stop" :disabled="!isStarted">停止</el-button>
+          <el-button type="danger" @click="stop">停止</el-button>
         </el-col>
       </el-row>
     </el-form>
@@ -69,8 +69,7 @@
 </template>
   
 <script>
-import { ElNotification } from 'element-plus'
-import { connect, stopClient } from '@/apis/client'
+import { check, connect, stopClient } from '@/apis/client'
 
 const window = ['1', '2', '3']
 
@@ -88,6 +87,10 @@ export default {
     start() {
       this.$data.isStarted = true
       connect(form.host, form.port)
+      // check().then(response => {
+      //   this.form.receiveData = response.extra.data
+      //   console.log(response)
+      // })
     },
     stop() {
       this.$data.isStarted = false

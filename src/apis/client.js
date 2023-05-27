@@ -7,3 +7,7 @@ export async function connect(host, port) {
 export async function stopClient() {
     return http.post('/client/stop')
 }
+
+export async function check() {
+    return http.post('/client/check')
+}

@@ -12,3 +12,7 @@ export async function send(data) {
     return http.post('/server/send', { extra: { data: data } })
 }
 
+export async function shutdown() {
+    http.post('/server/stop');
+    return http.post('/client/stop')
+}

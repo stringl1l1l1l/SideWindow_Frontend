@@ -44,13 +44,13 @@ service.interceptors.response.use(
           showClose: false,
         })
       }
-      return response
+      return response.data
     }
     else if (res.status >= 400) {
       return Promise.reject(new Error(res.msg || 'Error'))
     }
     else
-      return response
+      return response.data
   },
   error => {
     console.log('err' + error) // for debug

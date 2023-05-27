@@ -14,7 +14,7 @@ async function createWindow() {
   // Create the browser window.
   const winServer = new BrowserWindow({
     width: 700,
-    height: 700,
+    height: 800,
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
@@ -25,7 +25,7 @@ async function createWindow() {
 
   const winClient = new BrowserWindow({
     width: 700,
-    height: 700,
+    height: 800,
     webPreferences: {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
@@ -35,8 +35,10 @@ async function createWindow() {
   })
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
-    await winServer.loadURL(process.env.WEBPACK_DEV_SERVER_URL + "server.html")
-    await winClient.loadURL(process.env.WEBPACK_DEV_SERVER_URL + "client.html")
+    process.env.APP_TITLE = "server"
+    await winServer.loadURL(process.env.WEBPACK_DEV_SERVER_URL + "server")
+    process.env.APP_TITLE = "client"
+    await winClient.loadURL(process.env.WEBPACK_DEV_SERVER_URL + "client")
 
     // await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
     if (!process.env.IS_TEST) {
