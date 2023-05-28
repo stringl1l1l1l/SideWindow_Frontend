@@ -2,10 +2,15 @@ import { createStore } from 'vuex'
 export const ADD_SERVER_SEND_PACK = 'ADD_SERVER_SEND_PACK'
 export const UPDATE_SEND_WIN_ARRAY = 'UPDATE_SEND_WIN_ARRAY'
 export const UPDATE_SERVER_SEND_SEGINFO_LIST = 'UPDATE_SERVER_SEND_SEGINFO_LIST'
+export const UPDATE_SERVER_RECV_SEGINFO_LIST = 'UPDATE_SERVER_RECV_SEGINFO_LIST'
 export const UPDATE_SERVER_SEND_PACK_LIST = 'UPDATE_SERVER_SEND_PACK_LIST'
-export const UPDATE_SERVER_RECV_SEG_LIST = 'UPDATE_SERVER_RECV_SEG_LIST'
+export const UPDATE_CLIENT_RECV_SEGINFO_LIST = 'UPDATE_CLIENT_RECV_SEGINFO_LIST'
+export const UPDATE_CLIENT_SEND_SEGINFO_LIST = 'UPDATE_CLIENT_SEND_SEGINFO_LIST'
 export const UPDATE_SEND_WIN = 'UPDATE_SEND_WIN'
-export const CLEAR_ALL = 'CLEAR_ALL'
+export const UPDATE_RECV_DATA = 'UPDATE_RECV_DATA'
+export const CLEAR_SEVER = 'CLEAR_SEVER'
+export const CLEAR_CLIENT = 'CLEAR_CLIENT'
+
 const sendWinModel = {
     posBeg: 0,
     windowSize: 4,
@@ -16,38 +21,26 @@ const sendWinModel = {
         { segNo: 103, segment: { segNo: 104 } }
     ]
 }
+
 export default createStore({
     state: {
-        sendWinCnt: 0,
-        sendWin: [],
-        sendWinArray: [[]],
-        sRecvSegList: [],
+        sSendWinCnt: 0,
+        sSendWin: [],
         sSendPackList: [], // 存储接受到的报文列表
+        sRecvInfoList: [],
         sSendInfoList: [], // 只存储seginfo的列表
+        cSendInfoList: [],
+        cRecvInfoList: [],
+        cRecvData: ""
     },
 
     mutations: {
-        [UPDATE_SEND_WIN](state, sendWin) {
-            state.sendWinCnt++
-            state.sendWin = sendWin
+        [UPDATE_RECV_DATA](state, data) {
+            state.cRecvData = data
         },
-        [UPDATE_SEND_WIN_ARRAY](state, sendWinArray) {
-            // 缓存一次之前的窗口
-            if (state.sendWinCnt == 0) state.sendWinArray = sendWinArray
-            else if (state.sendWinCnt == 1) {
-                state.sendWinArray[0] = [...state.sendWinArray[0], ...sendWinArray[0]]
-                state.sendWinArray[1] = [...state.sendWinArray[1], ...sendWinArray[1]]
-            }
-            else {
-                for (let j = 0; j < 2; j++) {
-                    // 弹出sendWin大小的数组
-                    for (let i = 0; i < sendWinArray[j].length; i++) {
-                        state.sendWinArray[j].shift()
-                    }
-                    state.sendWinArray[j] = [...state.sendWinArray[j], ...sendWinArray[j]]
-                }
-            }
-            state.sendWinCnt++;
+        [UPDATE_SEND_WIN](state, sendWin) {
+            state.sSendWinCnt++
+            state.sSendWin = sendWin
         },
         [ADD_SERVER_SEND_PACK](state, pack) {
             state.sSendPackList.push(pack)
@@ -55,13 +48,25 @@ export default createStore({
         [UPDATE_SERVER_SEND_SEGINFO_LIST](state, InfoList) {
             state.sSendInfoList = [...state.sSendInfoList, ...InfoList]
         },
-        [CLEAR_ALL](state) {
-            state.sRecvSegList = []
+        [UPDATE_SERVER_RECV_SEGINFO_LIST](state, InfoList) {
+            state.sRecvInfoList = [...state.sRecvInfoList, ...InfoList]
+        },
+        [UPDATE_CLIENT_RECV_SEGINFO_LIST](state, InfoList) {
+            state.cRecvInfoList = [...state.cRecvInfoList, ...InfoList]
+        },
+        [UPDATE_CLIENT_SEND_SEGINFO_LIST](state, InfoList) {
+            state.cSendInfoList = [...state.cSendInfoList, ...InfoList]
+        },
+        [CLEAR_SEVER](state) {
+            state.sRecvInfoList = []
             state.sSendPackList = []
             state.sSendInfoList = []
-            state.sendWinArray = [[]]
-            state.sendWin = []
-            state.sendWinCnt = 0
+            state.sSendWin = []
+            state.sSendWinCnt = 0
+        },
+        [CLEAR_CLIENT](state) {
+            state.cRecvInfoList = []
+            state.cSendInfoList = []
         }
     },
     actions: {

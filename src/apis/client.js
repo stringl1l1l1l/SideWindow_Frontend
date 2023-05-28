@@ -11,3 +11,7 @@ export async function stopClient() {
 export async function check() {
     return http.post('/client/check')
 }
+
+export async function changeRecvWinSize(newSize) {
+    return http.post('/client/changeRecvWinSize', { extra: { newRecvWinSize: newSize } })
+}

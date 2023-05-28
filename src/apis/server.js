@@ -18,5 +18,5 @@ export async function shutdown() {
 }
 
 export async function changeSendWinSize(newSize) {
-    return http.post('/server/changeSendWinSize', newSize)
+    return http.post('/server/changeSendWinSize', { extra: { newSendWinSize: newSize } })
 }

@@ -1,5 +1,5 @@
 <template>
-  <div style="margin:20px;">
+  <div style="margin:10px;">
     <el-form :model="form" label-width="120px">
       <el-form-item label="监听端口">
         <el-col :span="5">
@@ -29,23 +29,25 @@
       </el-form-item>
 
       <el-form-item label=" 发送日志">
-        <el-table :data="SendSegList" border max-height="157" style="width: 100%">
+        <el-table :data="SendSegList" border max-height="150">
           <el-table-column prop="segment.segNo" label="序号" width="100%" />
           <el-table-column prop="segment.ackNo" label="确认号" width="100%" />
           <el-table-column prop="segment.data" label="数据" width="100%" />
           <el-table-column prop="isAck" label="是否重传" width="100%" />
-          <el-table-column label="查看窗口" width="100%">
+          <!-- <el-table-column label="查看窗口" width="100%">
             <template #default="scope">
               <el-button type="primary" size="small" @click="checkCurWindow(scope.row)">查看</el-button>
             </template>
-          </el-table-column>
+          </el-table-column> -->
         </el-table>
       </el-form-item>
 
       <el-form-item label="接收日志">
-        <el-table :data="form.logReceiveData" border max-height="157" style="width: 100%">
-          <el-table-column prop="segNo" label="序号" width="100%" />
-          <el-table-column prop="ackNo" label="确认号" width="100%" />
+        <el-table :data="RecvSegList" border max-height="150" style="width: 100%">
+          <el-table-column prop="segment.segNo" label="序号" width="100%" />
+          <el-table-column prop="segment.ackNo" label="确认号" width="100%" />
+          <el-table-column prop="segment.data" label="数据" width="100%" />
+          <el-table-column prop="isRepeat" label="是否重传" width="100%" />
         </el-table>
       </el-form-item>
       <el-form-item label="输入框">
@@ -91,19 +93,15 @@
   
 <script>
 import { ElNotification } from 'element-plus'
-import { send, shutdown, startServer, stopServer } from '@/apis/server'
+import { changeSendWinSize, send, shutdown, startServer, stopServer } from '@/apis/server'
 import { initServerSocket } from '@/utils/webSocket'
-
-const window1 = []
-const window2 = []
+import { CLEAR_SEVER } from '@/utils/store'
 
 const form = {
   host: '127.0.0.1',
   port: 6666,
-  sendWinSize: 3,
+  sendWinSize: 4,
   sendData: "hello, client!",
-  window1Display: window1,
-  window2Display: window2,
   sendCnt: 1,
   logSendData: [],
   logReceiveData: [],
@@ -133,11 +131,9 @@ export default {
     onSubmit() {
       if (this.form.sendData.trim().length != 0) {
         if (this.isContinous) {
-          let newData = "";
           for (let i = 0; i < this.form.sendCnt; i++) {
-            newData += this.form.sendData
+            send(this.form.sendData)
           }
-          send(newData)
         }
         else
           send(this.form.sendData)
@@ -165,22 +161,28 @@ export default {
       this.form.window2Display = row.window2
     },
     changeWinSize() {
+      changeSendWinSize(this.form.sendWinSize)
     },
     clearData() {
-      this.$store.commit("CLEAR_ALL")
+      this.$store.commit(CLEAR_SEVER)
     }
   },
   computed: {
     SendSegList() {
       const res = this.$store.state.sSendInfoList
-      console.log("计算属性为")
+      this.$nextTick()
+      return res
+    },
+    RecvSegList() {
+      const res = this.$store.state.sRecvInfoList
+      console.log("接收到的ACK报文为")
       console.log(res)
       this.$nextTick()
       return res
     },
-
+    // 窗口元素为选中状态
     sendWin() {
-      const { posBeg, posCur, posEnd, segmentList } = this.$store.state.sendWin
+      const { posBeg, posCur, posEnd, windowSize, segmentList } = this.$store.state.sSendWin
       const array = []
       // 已发送元素为绿色
       for (let i = posBeg; i < posCur; i++) {
@@ -188,22 +190,23 @@ export default {
           this.color[i - this.lastBeg] = "#34ff00"
         array.push(segmentList[i].segment.segNo)
       }
-      // 待发送窗口元素为其他颜色
+      // 待发送窗口元素为红色
       for (let i = posCur; i < posEnd; i++) {
         if (i - this.lastBeg > 0)
           this.color[i - this.lastBeg] = "#ff0000"
         array.push(segmentList[i].segment.segNo)
       }
       this.$nextTick()
-      console.log("未确认窗口")
+      console.log("窗口")
       console.log(array)
       console.log(this.color)
+      this.form.sendWinSize = windowSize
       return array
     },
-    // 缓存元素为默认色
+    // 缓存元素为默认色，未选中状态
     sendCache() {
-      if (this.$store.state.sendWinCnt == 1 || this.$store.state.sendWinCnt % 3 == 0) {
-        const { posBeg, posCur, windowSize, segmentList } = this.$store.state.sendWin
+      if (this.$store.state.sSendWinCnt == 1 || this.$store.state.sSendWinCnt % 3 == 0) {
+        const { posBeg, posCur, windowSize, segmentList } = this.$store.state.sSendWin
         this.lastBeg = posBeg //保存上一次的缓存初始序号
         const array = []
         for (let i = 0; i < 2 * windowSize; i++) {

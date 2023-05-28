@@ -4,12 +4,12 @@
 
       <el-form-item label="目标Socket">
         <el-col :span="10">
-          <el-input maxlength="15" v-model="form.host" :disabled="isStarted">
+          <el-input maxlength="15" v-model="form.host">
             <template #append>:</template>
           </el-input>
         </el-col>
         <el-col :span="5">
-          <el-input-number :min="0" :max="65535" v-model="form.port" :controls="false" :disabled="isStarted">
+          <el-input-number :min="0" :max="65535" v-model="form.port" :controls="false">
           </el-input-number>
         </el-col>
       </el-form-item>
@@ -31,26 +31,27 @@
       </el-form-item>
 
       <el-form-item label="接收内容">
-        <el-input v-model="form.receiveData" disabled :autosize="{ minRows: 4 }" type="textarea" />
+        <el-input v-model="getRecvData" disabled :autosize="{ minRows: 4, maxRows: 6 }" type="textarea" />
       </el-form-item>
 
       <el-form-item label="接收日志">
-        <el-table :data="form.logReceiveData" border max-height="157" style="width: 500px">
-          <el-table-column prop="segNo" label="序号" width="100%" />
-          <el-table-column prop="data" label="数据" width="100%" />
-          <el-table-column prop="isRepeat" label="是否重复" width="100%" />
+        <el-table :data="getRecvInfoList" border max-height="150" style="width: 500px">
+          <el-table-column prop="segment.segNo" label="序号" width="100%" />
+          <el-table-column prop="segment.data" label="数据" width="100%" />
+          <el-table-column prop="recvStatus" label="接收状态" width="100%" />
           <el-table-column prop="random" label="随机情况" width="100%" />
-          <el-table-column label="查看窗口" width="100%">
+          <!-- <el-table-column label="查看窗口" width="100%">
             <template #default="scope">
               <el-button type="primary" size="small" @click="checkCurWindow(scope.row)">查看</el-button>
             </template>
-          </el-table-column>
+          </el-table-column> -->
         </el-table>
       </el-form-item>
       <el-form-item label="发送日志">
-        <el-table :data="form.logSendData" border max-height="157" style="width: 500px">
-          <el-table-column prop="segNo" label="序号" width="100%" />
-          <el-table-column prop="ackNo" label="确认号" width="100%" />
+        <el-table :data="getSendInfoList" border max-height="150" style="width: 500px">
+          <el-table-column prop="segment.segNo" label="序号" width="100%" />
+          <el-table-column prop="segment.ackNo" label="确认号" width="100%" />
+          <el-table-column prop="segment.data" label="数据" width="100%" />
         </el-table>
       </el-form-item>
       <el-divider />
@@ -62,6 +63,9 @@
         <el-col :span="3" align="middle">
           <el-button type="danger" @click="stop">停止</el-button>
         </el-col>
+        <el-col :span="3" align="middle">
+          <el-button @click="clearData">清空</el-button>
+        </el-col>
       </el-row>
     </el-form>
 
@@ -69,7 +73,9 @@
 </template>
   
 <script>
-import { connect, stopClient } from '@/apis/client'
+import { changeRecvWinSize, connect, stopClient } from '@/apis/client'
+import { initClinetSocket } from '@/utils/webSocket'
+import { CLEAR_CLIENT } from '@/utils/store'
 
 const window = ['1', '2', '3']
 
@@ -81,16 +87,14 @@ export default {
     return {
       form: form,
       isStarted: false,
+      clientSockect: {}
     }
   },
   methods: {
     start() {
       this.$data.isStarted = true
+      this.clientSockect = initClinetSocket()
       connect(form.host, form.port)
-      // check().then(response => {
-      //   this.form.receiveData = response.extra.data
-      //   console.log(response)
-      // })
     },
     stop() {
       this.$data.isStarted = false
@@ -101,6 +105,21 @@ export default {
       this.$data.form.windowDisplay = row.window
     },
     changeWinSize() {
+      changeRecvWinSize(this.receiveWinSize)
+    },
+    clearData() {
+      this.$store.commit(CLEAR_CLIENT)
+    }
+  },
+  computed: {
+    getRecvData() {
+      return this.$store.state.cRecvData
+    },
+    getRecvInfoList() {
+      return this.$store.state.cRecvInfoList
+    },
+    getSendInfoList() {
+      return this.$store.state.cSendInfoList
     }
   }
 }
@@ -108,8 +127,7 @@ export default {
 const form = {
   host: "127.0.0.1",
   port: 6666,
-  receiveWinSize: 3,
-  receiveData: "111",
+  receiveWinSize: 4,
   windowDisplay: window,
   logReceiveData: [{
     segNo: 0,

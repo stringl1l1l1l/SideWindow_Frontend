@@ -39,7 +39,7 @@ service.interceptors.response.use(
       if (typeof msg == "string") {
         ElNotification.success({
           message: msg,
-          position: 'bottom-right',
+          position: 'top-right',
           duration: 1500,
           showClose: false,
         })
