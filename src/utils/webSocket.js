@@ -5,7 +5,8 @@ import {
     UPDATE_SERVER_RECV_SEGINFO_LIST,
     UPDATE_RECV_DATA,
     UPDATE_CLIENT_RECV_SEGINFO_LIST,
-    UPDATE_CLIENT_SEND_SEGINFO_LIST
+    UPDATE_CLIENT_SEND_SEGINFO_LIST,
+    UPDATE_RECV_WIN
 } from '@/utils/store'
 const PACK = 200
 const ACK = 201
@@ -71,8 +72,8 @@ export function initClinetSocket() {
         if (response.extra) {
             if (response.extra.recvWin) {
                 console.log("更新窗口")
-                console.log(response.extra.sendWin)
-                window.$vm.$store.commit(UPDATE_SEND_WIN, response.extra.sendWin)
+                console.log(response.extra.recvWin)
+                window.$vm.$store.commit(UPDATE_RECV_WIN, response.extra.recvWin)
             }
             if (response.extra.data) {
                 console.log("更新数据")

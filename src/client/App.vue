@@ -1,5 +1,5 @@
 <template>
-  <div style="margin:20px;">
+  <div style="margin:10px;">
     <el-form :model="form" label-width="120px">
 
       <el-form-item label="目标Socket">
@@ -9,7 +9,7 @@
           </el-input>
         </el-col>
         <el-col :span="5">
-          <el-input-number :min="0" :max="65535" v-model="form.port" :controls="false">
+          <el-input-number :min="0" :max="65535" v-model="form.port">
           </el-input-number>
         </el-col>
       </el-form-item>
@@ -25,8 +25,12 @@
       </el-form-item>
 
       <el-form-item label="接收窗口">
-        <el-checkbox-group v-model="form.windowDisplay">
-          <el-checkbox-button v-for="value in form.windowDisplay" :key="value" :label="value" disabled />
+        <el-checkbox-group v-model="getRecvWin">
+          <el-checkbox-button v-for="(value, index) in cache" :key="value" :label="value">
+            <template #default>
+              <span :style="{ color: getColor[index], fontWeight: 'bold' }">{{ value }}</span>
+            </template>
+          </el-checkbox-button>
         </el-checkbox-group>
       </el-form-item>
 
@@ -35,20 +39,19 @@
       </el-form-item>
 
       <el-form-item label="接收日志">
-        <el-table :data="getRecvInfoList" border max-height="150" style="width: 500px">
+        <el-table highlight-current-row size="small" :data="getRecvInfoList" border max-height="150" style="width: 500px">
           <el-table-column prop="segment.segNo" label="序号" width="100%" />
           <el-table-column prop="segment.data" label="数据" width="100%" />
-          <el-table-column prop="recvStatus" label="接收状态" width="100%" />
-          <el-table-column prop="random" label="随机情况" width="100%" />
-          <!-- <el-table-column label="查看窗口" width="100%">
+          <el-table-column prop="recvStatus" label="接收状态" width="100%">
             <template #default="scope">
-              <el-button type="primary" size="small" @click="checkCurWindow(scope.row)">查看</el-button>
+              {{ this.mapRecvStatus[scope.row.recvStatus] }}
             </template>
-          </el-table-column> -->
+          </el-table-column>
+          <el-table-column prop="random" label="随机情况" width="100%" />
         </el-table>
       </el-form-item>
       <el-form-item label="发送日志">
-        <el-table :data="getSendInfoList" border max-height="150" style="width: 500px">
+        <el-table highlight-current-row size="small" :data="getSendInfoList" border max-height="150" style="width: 500px">
           <el-table-column prop="segment.segNo" label="序号" width="100%" />
           <el-table-column prop="segment.ackNo" label="确认号" width="100%" />
           <el-table-column prop="segment.data" label="数据" width="100%" />
@@ -73,11 +76,16 @@
 </template>
   
 <script>
-import { changeRecvWinSize, connect, stopClient } from '@/apis/client'
+import { changeRecvWinSize, clearReceiveCache, connect, stopClient } from '@/apis/client'
 import { initClinetSocket } from '@/utils/webSocket'
 import { CLEAR_CLIENT } from '@/utils/store'
 
-const window = ['1', '2', '3']
+const form = {
+  host: "127.0.0.1",
+  port: 6666,
+  receiveWinSize: {}
+}
+const initCache = [100, 101, 102, 103, 104, 105, 106, 107, 108]
 
 export default {
   name: 'server',
@@ -87,7 +95,13 @@ export default {
     return {
       form: form,
       isStarted: false,
-      clientSockect: {}
+      clientSockect: {},
+      lastCacheBeg: 0,
+      lastPosBeg: 0,
+      cache: initCache,
+      cacheSize: 9,
+      color: [],
+      mapRecvStatus: ["正常", "丢失", "错误", "重复", "拒收"]
     }
   },
   methods: {
@@ -98,6 +112,10 @@ export default {
     },
     stop() {
       this.$data.isStarted = false
+      this.lastCacheBeg = 0
+      this.lastPosBeg = 0
+      this.cache = initCache
+      this.color = []
       stopClient()
     },
     checkCurWindow(row) {
@@ -105,10 +123,12 @@ export default {
       this.$data.form.windowDisplay = row.window
     },
     changeWinSize() {
-      changeRecvWinSize(this.receiveWinSize)
+      changeRecvWinSize(this.form.receiveWinSize)
     },
     clearData() {
       this.$store.commit(CLEAR_CLIENT)
+      clearReceiveCache()
+      this.color = []
     }
   },
   computed: {
@@ -120,30 +140,41 @@ export default {
     },
     getSendInfoList() {
       return this.$store.state.cSendInfoList
+    },
+    getRecvWin() {
+      const { posBeg, posEnd, segmentList, windowSize } = this.$store.state.cRecvWin
+      const array = []
+      // 越界时更新缓存
+      if (posEnd - this.lastCacheBeg > this.cacheSize) {
+        const newCache = []
+        this.lastCacheBeg = posBeg
+        for (let i = 0; i < this.cacheSize; i++) {
+          newCache.push(segmentList[posBeg].segNo + i)
+        }
+        this.cache = newCache
+        this.color = []
+      }
+
+      // 已确认报文为绿色
+      for (let i = this.lastPosBeg; i < posBeg; i++) {
+        if (i - this.lastCacheBeg >= 0) {
+          this.color[i - this.lastCacheBeg] = "#34ff00"
+        }
+      }
+      // 更新窗口
+      for (let i = posBeg; i < posEnd; i++) {
+        array.push(segmentList[i].segNo)
+      }
+      console.log("接收窗口")
+      console.log(array)
+      this.form.receiveWinSize = windowSize
+      this.lastPosBeg = posBeg
+      return array
+    },
+    getColor() {
+      return this.color
     }
   }
-}
-
-const form = {
-  host: "127.0.0.1",
-  port: 6666,
-  receiveWinSize: 4,
-  windowDisplay: window,
-  logReceiveData: [{
-    segNo: 0,
-    ackNo: 0,
-    data: "hello",
-    isRepeat: false,
-    random: 0,
-    window: [5, 6, 7],
-  }],
-  logSendData: [{
-    segNo: 0,
-    ackNo: 0,
-    data: "hello",
-    isReQuest: false,
-    window: [8, 9]
-  }]
 }
 
 </script>

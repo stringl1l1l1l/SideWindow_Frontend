@@ -3,7 +3,7 @@
     <el-form :model="form" label-width="120px">
       <el-form-item label="监听端口">
         <el-col :span="5">
-          <el-input-number :min="0" :max="65535" v-model="form.port" :controls="false" :disabled="isStarted">
+          <el-input-number :min="0" :max="65535" v-model="form.port">
           </el-input-number>
         </el-col>
       </el-form-item>
@@ -15,35 +15,39 @@
         <el-col :span="5">
           <el-button type="primary" @click="changeWinSize">修改</el-button>
         </el-col>
+      </el-form-item>
 
+      <el-form-item label="报文段MSS">
+        <el-col :span="10">
+          <el-input-number :min="1" :max="10" v-model="form.MSS" />
+        </el-col>
+        <el-col :span="5">
+          <el-button type="primary" @click="changeMSS">修改</el-button>
+        </el-col>
       </el-form-item>
 
       <el-form-item label="发送窗口">
-        <el-checkbox-group v-model="sendWin">
-          <el-checkbox-button v-for="(value, index) in  sendCache " :key="value" :label="value" size="small">
+        <el-checkbox-group v-model="getSendWin">
+          <el-checkbox-button v-for="(value, index) in cache" :key="value" :label="value" size="small">
             <template #default>
-              <span :style="{ color: colorCompute[index], fontWeight: 'bold' }">{{ value }}</span>
+              <span :style="{ color: getColor[index], fontWeight: 'bold' }">{{ value }}</span>
             </template>
           </el-checkbox-button>
         </el-checkbox-group>
       </el-form-item>
 
       <el-form-item label=" 发送日志">
-        <el-table :data="SendSegList" border max-height="150">
+        <el-table highlight-current-row size="small" ref="recvLog" :data="getSendSegList" border max-height="150">
           <el-table-column prop="segment.segNo" label="序号" width="100%" />
           <el-table-column prop="segment.ackNo" label="确认号" width="100%" />
           <el-table-column prop="segment.data" label="数据" width="100%" />
-          <el-table-column prop="isAck" label="是否重传" width="100%" />
-          <!-- <el-table-column label="查看窗口" width="100%">
-            <template #default="scope">
-              <el-button type="primary" size="small" @click="checkCurWindow(scope.row)">查看</el-button>
-            </template>
-          </el-table-column> -->
+          <el-table-column prop="isSend" label="已发送" width="100%" />
+          <el-table-column prop="isRepeat" label="是否重传" width="100%" />
         </el-table>
       </el-form-item>
 
       <el-form-item label="接收日志">
-        <el-table :data="RecvSegList" border max-height="150" style="width: 100%">
+        <el-table highlight-current-row ref="recvLog" size="small" :data="getRecvSegList" border max-height="150">
           <el-table-column prop="segment.segNo" label="序号" width="100%" />
           <el-table-column prop="segment.ackNo" label="确认号" width="100%" />
           <el-table-column prop="segment.data" label="数据" width="100%" />
@@ -93,19 +97,19 @@
   
 <script>
 import { ElNotification } from 'element-plus'
-import { changeSendWinSize, send, shutdown, startServer, stopServer } from '@/apis/server'
+import { changeMSS, changeSendWinSize, send, shutdown, startServer, stopServer } from '@/apis/server'
 import { initServerSocket } from '@/utils/webSocket'
 import { CLEAR_SEVER } from '@/utils/store'
 
 const form = {
   host: '127.0.0.1',
   port: 6666,
-  sendWinSize: 4,
   sendData: "hello, client!",
   sendCnt: 1,
-  logSendData: [],
-  logReceiveData: [],
+  MSS: {},
 }
+
+const initCache = [100, 101, 102, 103, 104, 105, 106, 107, 108]
 
 export default {
   name: 'server',
@@ -117,8 +121,10 @@ export default {
       isStarted: false,
       isContinous: false,
       serverSocket: {},
-      lastBeg: 100,
-      cache: [],
+      lastCacheBeg: 0,
+      lastPosBeg: 0,
+      cache: initCache,
+      cacheSize: 9,
       color: []
     }
   },
@@ -131,9 +137,11 @@ export default {
     onSubmit() {
       if (this.form.sendData.trim().length != 0) {
         if (this.isContinous) {
+          let newData = ""
           for (let i = 0; i < this.form.sendCnt; i++) {
-            send(this.form.sendData)
+            newData += this.form.sendData
           }
+          send(newData)
         }
         else
           send(this.form.sendData)
@@ -149,11 +157,18 @@ export default {
     },
     stop() {
       stopServer()
+      this.lastCacheBeg = 0
+      this.lastPosBeg = 0
       this.isStarted = false
+      this.cache = initCache
     },
     shutdownAll() {
       shutdown()
+      this.lastCacheBeg = 0
+      this.lastPosBeg = 0
       this.isStarted = false
+      this.cache = initCache
+      this.color = []
     },
     checkCurWindow(row) {
       console.log(row)
@@ -163,17 +178,24 @@ export default {
     changeWinSize() {
       changeSendWinSize(this.form.sendWinSize)
     },
+    changeMSS() {
+      changeMSS(this.form.MSS)
+    },
     clearData() {
       this.$store.commit(CLEAR_SEVER)
+      this.color = []
+    },
+    handleEnter() {
+      this.form.sendData += '\n'
     }
   },
   computed: {
-    SendSegList() {
+    getSendSegList() {
       const res = this.$store.state.sSendInfoList
       this.$nextTick()
       return res
     },
-    RecvSegList() {
+    getRecvSegList() {
       const res = this.$store.state.sRecvInfoList
       console.log("接收到的ACK报文为")
       console.log(res)
@@ -181,51 +203,67 @@ export default {
       return res
     },
     // 窗口元素为选中状态
-    sendWin() {
+    getSendWin() {
       const { posBeg, posCur, posEnd, windowSize, segmentList } = this.$store.state.sSendWin
       const array = []
-      // 已发送元素为绿色
+      // 如果窗口即将越界，更新窗口缓存
+      const offset = posEnd - this.lastCacheBeg - this.cacheSize
+      if (offset > 0) {
+        const newCache = []
+        this.lastCacheBeg = posBeg
+        for (let i = 0; i < this.cacheSize; i++) {
+          newCache.push(segmentList[posBeg].segNo + i)
+        }
+        this.cache = newCache
+        this.color = []
+      }
+
+      // 已确认报文为绿色
+      for (let i = this.lastPosBeg; i < posBeg; i++) {
+        if (i - this.lastCacheBeg >= 0) {
+          this.color[i - this.lastCacheBeg] = "#34ff00"
+        }
+        if (segmentList[i]) {
+          array.push(segmentList[i].segment.segNo)
+        }
+      }
+      // 已发送元素但未确认为红色
       for (let i = posBeg; i < posCur; i++) {
-        if (i - this.lastBeg > 0)
-          this.color[i - this.lastBeg] = "#34ff00"
-        array.push(segmentList[i].segment.segNo)
+        if (i - this.lastCacheBeg >= 0)
+          this.color[i - this.lastCacheBeg] = "#ff0000"
+        if (segmentList[i])
+          array.push(segmentList[i].segment.segNo)
       }
-      // 待发送窗口元素为红色
+      // 待发送窗口元素为默认
       for (let i = posCur; i < posEnd; i++) {
-        if (i - this.lastBeg > 0)
-          this.color[i - this.lastBeg] = "#ff0000"
-        array.push(segmentList[i].segment.segNo)
+        if (segmentList[i])
+          array.push(segmentList[i].segNo)
       }
+
       this.$nextTick()
-      console.log("窗口")
-      console.log(array)
-      console.log(this.color)
       this.form.sendWinSize = windowSize
+      this.lastPosBeg = posBeg
       return array
     },
-    // 缓存元素为默认色，未选中状态
-    sendCache() {
-      if (this.$store.state.sSendWinCnt == 1 || this.$store.state.sSendWinCnt % 3 == 0) {
-        const { posBeg, posCur, windowSize, segmentList } = this.$store.state.sSendWin
-        this.lastBeg = posBeg //保存上一次的缓存初始序号
-        const array = []
-        for (let i = 0; i < 2 * windowSize; i++) {
-          array.push(segmentList[posBeg].segment.segNo + i)
-          if (i + posBeg >= posCur)
-            this.color[i] = "#000000"
-          else
-            this.color[i] = "#34ff00"
-        }
-        this.$nextTick()
-        this.cache = array
-        return array
-      } else
-        return this.cache
-    },
-    colorCompute() {
+    // // 缓存元素为默认色，未选中状态
+    // getSendCache() {
+    //   if (this.$store.state.sSendWinCnt == 2 || this.$store.state.sSendWinCnt % 6 == 0) {
+    //     const { posBeg, windowSize, segmentList } = this.$store.state.sSendWin
+    //     const array = []
+    //     for (let i = 0; i < 2 * windowSize; i++) {
+    //       array.push(segmentList[posBeg].segNo + i)
+    //     }
+    //     this.$nextTick()
+    //     this.cache = array
+    //     this.lastCacheBeg = posBeg //保存上一次的缓存初始序号
+    //     return array
+    //   } else
+    //     return this.cache
+    // },
+    getColor() {
       return this.color
     }
-  },
+  }
 }
 
 </script>

@@ -20,3 +20,6 @@ export async function shutdown() {
 export async function changeSendWinSize(newSize) {
     return http.post('/server/changeSendWinSize', { extra: { newSendWinSize: newSize } })
 }
+export async function changeMSS(newMSS) {
+    return http.post('/server/changeMSS', { extra: { newMSS: newMSS } })
+}

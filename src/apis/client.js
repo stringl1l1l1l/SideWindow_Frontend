@@ -15,3 +15,7 @@ export async function check() {
 export async function changeRecvWinSize(newSize) {
     return http.post('/client/changeRecvWinSize', { extra: { newRecvWinSize: newSize } })
 }
+
+export async function clearReceiveCache() {
+    return http.post('/client/clearReceiveCache')
+}
