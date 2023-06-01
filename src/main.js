@@ -1,6 +1,4 @@
-import { createApp, createGlobalAPI } from 'vue'
-// import Client from './client/App.vue'
-// import Server from './server/App.vue'
+import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 // main.ts

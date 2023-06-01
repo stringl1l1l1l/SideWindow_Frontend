@@ -86,9 +86,9 @@
         <el-col :span="3" align="middle">
           <el-button @click="clearData">清空</el-button>
         </el-col>
-        <el-col :span="3" align="middle">
+        <!-- <el-col :span="3" align="middle">
           <el-button @click="shutdownAll">全部断开</el-button>
-        </el-col>
+        </el-col> -->
       </el-row>
     </el-form>
 
@@ -97,7 +97,8 @@
   
 <script>
 import { ElNotification } from 'element-plus'
-import { changeMSS, changeSendWinSize, send, shutdown, startServer, stopServer } from '@/apis/server'
+import { changeMSS, changeSendWinSize, send, startServer, stopServer } from '@/apis/server'
+import { stopClient } from '@/apis/client'
 import { initServerSocket } from '@/utils/webSocket'
 import { CLEAR_SEVER } from '@/utils/store'
 
@@ -156,24 +157,13 @@ export default {
       }
     },
     stop() {
-      stopServer()
-      this.lastCacheBeg = 0
-      this.lastPosBeg = 0
-      this.isStarted = false
-      this.cache = initCache
-    },
-    shutdownAll() {
-      shutdown()
       this.lastCacheBeg = 0
       this.lastPosBeg = 0
       this.isStarted = false
       this.cache = initCache
       this.color = []
-    },
-    checkCurWindow(row) {
-      console.log(row)
-      this.form.window1Display = row.window1
-      this.form.window2Display = row.window2
+      this.clearData()
+      stopServer()
     },
     changeWinSize() {
       changeSendWinSize(this.form.sendWinSize)
@@ -245,21 +235,6 @@ export default {
       this.lastPosBeg = posBeg
       return array
     },
-    // // 缓存元素为默认色，未选中状态
-    // getSendCache() {
-    //   if (this.$store.state.sSendWinCnt == 2 || this.$store.state.sSendWinCnt % 6 == 0) {
-    //     const { posBeg, windowSize, segmentList } = this.$store.state.sSendWin
-    //     const array = []
-    //     for (let i = 0; i < 2 * windowSize; i++) {
-    //       array.push(segmentList[posBeg].segNo + i)
-    //     }
-    //     this.$nextTick()
-    //     this.cache = array
-    //     this.lastCacheBeg = posBeg //保存上一次的缓存初始序号
-    //     return array
-    //   } else
-    //     return this.cache
-    // },
     getColor() {
       return this.color
     }

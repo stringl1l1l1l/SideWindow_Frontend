@@ -19,3 +19,7 @@ export async function changeRecvWinSize(newSize) {
 export async function clearReceiveCache() {
     return http.post('/client/clearReceiveCache')
 }
+
+export async function openRandomError(flag) {
+    return http.post('/client/openRandomError', { extra: { openRandomError: flag } })
+}

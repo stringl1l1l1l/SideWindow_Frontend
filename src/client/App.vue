@@ -57,6 +57,15 @@
           <el-table-column prop="segment.data" label="数据" width="100%" />
         </el-table>
       </el-form-item>
+      <el-form-item>
+        <el-col :span="5">
+          <el-checkbox label="随机出错" v-model="randomErrorFlag" />
+        </el-col>
+        <el-col :span="3" align="middle">
+          <el-button type="primary" size="small" @click="openRandomError">确认</el-button>
+        </el-col>
+      </el-form-item>
+
       <el-divider />
 
       <el-row justify="center">
@@ -70,20 +79,22 @@
           <el-button @click="clearData">清空</el-button>
         </el-col>
       </el-row>
+
     </el-form>
 
   </div>
 </template>
   
 <script>
-import { changeRecvWinSize, clearReceiveCache, connect, stopClient } from '@/apis/client'
+import { changeRecvWinSize, clearReceiveCache, connect, openRandomError, stopClient } from '@/apis/client'
 import { initClinetSocket } from '@/utils/webSocket'
 import { CLEAR_CLIENT } from '@/utils/store'
 
 const form = {
   host: "127.0.0.1",
   port: 6666,
-  receiveWinSize: {}
+  receiveWinSize: {},
+  randomErrorFlag: false
 }
 const initCache = [100, 101, 102, 103, 104, 105, 106, 107, 108]
 
@@ -111,11 +122,12 @@ export default {
       connect(form.host, form.port)
     },
     stop() {
-      this.$data.isStarted = false
+      this.isStarted = false
       this.lastCacheBeg = 0
       this.lastPosBeg = 0
       this.cache = initCache
       this.color = []
+      this.clearData()
       stopClient()
     },
     checkCurWindow(row) {
@@ -129,6 +141,9 @@ export default {
       this.$store.commit(CLEAR_CLIENT)
       clearReceiveCache()
       this.color = []
+    },
+    openRandomError() {
+      openRandomError(this.randomErrorFlag)
     }
   },
   computed: {
